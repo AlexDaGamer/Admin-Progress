@@ -1,0 +1,106 @@
+--!strict
+local plrs: Players = game:GetService("Players")
+local tween_service: TweenService = game:GetService("TweenService")
+
+local function do_options(tabl: table?, options: table): table
+	if type(tabl) ~= "table" then
+		tabl = options
+	else
+		for i,v in pairs(options) do
+			tabl[i] = tabl[i] or options[i]
+		end
+	end
+
+	return tabl
+end
+
+local admin_lib = {
+    version = "0.0.5",
+    prefix = "/e ",
+    commands = {}
+}
+
+admin_lib._round = function(num: number, numeros: number): number
+    return math.round(num * numeros) / numeros
+end
+
+admin_lib.tween = function(inst: Instance, tween_info: TweenInfo, props)
+    local tween_info: TweenInfo = tween_info or TweenInfo.new(
+        .1,
+        Enum.EasingStyle.Linear,
+        Enum.EasingDirection.In,
+        0,
+        false,
+        0
+    )
+
+    local tween: Tween = tween_service:Create(inst,tween_info,props)
+    coroutine.wrap(function() tween:Play() end)()
+
+	return tween
+end
+
+admin_lib.find_plr = function(str: string): Player --| nil
+    for _,v in pairs(plrs:GetChildren()) do
+        if string.lower(string.sub(v.Name, 1, #str)) == str or 
+           string.lower(string.sub(v.DisplayName, 1, #str)) == str then
+
+            return v
+        end
+    end
+
+	return false
+end
+
+admin_lib.p_find_plrs = function(str: string)
+	str = string.lower(str)
+
+	local _plrs = plrs:GetChildren()
+
+	if str == "all" then 
+		return _plrs
+	elseif str == "random" then
+		return _plrs[math.random(1,#_plrs)]
+	else
+		return admin_lib.find_plr(str)
+	end
+end
+
+admin_lib.init_cmd = function(tabl)
+	local name: string = tabl[1]
+
+    local command = admin_lib.get_command(name)
+
+	if not command then return end
+
+	table.remove(tabl, 1)
+
+	command(table.unpack(tabl))
+end
+
+admin_lib.process_input = function(str: string)
+    local prefix = admin_lib.prefix
+
+    if not string.sub(str, 1, #prefix) == prefix then return end
+
+    str = string.sub(str, #prefix + 1)
+    str = string.gsub(str, '%s+', ' ')
+
+	admin_lib.init_cmd(string.split(str, " "))
+end
+
+admin_lib.add_command = function(names, desc: string, func)
+	admin_lib.commands[#admin_lib.commands+1] = {names, desc, func}
+end
+
+admin_lib.get_command = function(str: string)
+	local commands = admin_lib.commands
+
+	for i=1,#commands do
+		if not table.find(commands[i][1], str) then continue end
+
+		return commands[i][3]
+	end
+end
+
+return admin_lib
